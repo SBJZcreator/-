@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>急救指挥官 - 双人联机角色分配</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        /* 顶部导航栏样式 */
+        .header {
+            width: 100%;
+            height: 60px;
+            background-color: #2E86AB;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 50px;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 22px;
+            font-weight: bold;
+            margin-right: 60px;
+        }
+        .logo i {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+        .nav {
+            display: flex;
+            list-style: none;
+        }
+        .nav li {
+            margin: 0 20px;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .nav li:hover, .nav li.active {
+            border-bottom: 2px solid white;
+        }
+
+        /* 中部核心区域样式 */
+        .main {
+            margin-top: 60px;
+            padding: 50px;
+            background-color: #F8F9FA;
+            min-height: calc(100vh - 60px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .match-status {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 40px;
+            text-align: center;
+            padding: 15px 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .role-cards {
+            display: flex;
+            gap: 60px;
+            margin-bottom: 50px;
+        }
+        .role-card {
+            width: 350px;
+            height: 400px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .role-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        .role-card.selected {
+            border: 2px solid #2E86AB;
+            box-shadow: 0 0 15px rgba(46,134,171,0.3);
+        }
+        .role-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #F0F8FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .role-icon i {
+            font-size: 60px;
+            color: #2E86AB;
+        }
+        .role-title {
+            font-size: 20px;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .role-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            text-align: center;
+            flex: 1;
+        }
+
+        /* 确认按钮样式 */
+        .confirm-btn {
+            width: 200px;
+            height: 45px;
+            background-color: #2E86AB;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .confirm-btn:disabled {
+            background-color: #95C3D8;
+            cursor: not-allowed;
+        }
+        .confirm-btn:hover:not(:disabled) {
+            background-color: #236B8E;
+            transform: scale(1.05);
+        }
+
+        /* 队友信息栏样式 */
+        .teammate-info {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s;
+        }
+        .teammate-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #F0F8FF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .teammate-avatar i {
+            font-size: 24px;
+            color: #2E86AB;
+        }
+        .teammate-status {
+            font-size: 14px;
+            color: #666;
+        }
+        .status-tag {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #dc3545;
+            margin-right: 5px;
+        }
+        .status-tag.ready {
+            background-color: #28a745;
+        }
+        .status-tag.waiting {
+            background-color: #ffc107;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 3px solid rgba(46, 134, 171, 0.3);
+            border-radius: 50%;
+            border-top-color: #2E86AB;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 进入场景提示 */
+        .enter-scene {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #28a745;
+            display: none;
+        }
+    </style>
+    <!-- 引入图标库 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="header">
+        <div class="logo">
+            <i class="fa fa-heartbeat"></i>
+            <span>急救指挥官</span>
+        </div>
+        <ul class="nav">
+            <li>首页</li>
+            <li>场景选择</li>
+            <li>知识库</li>
+            <li class="active">双人联机</li>
+            <li>个人中心</li>
+        </ul>
+    </header>
+
+    <!-- 中部核心区域 -->
+    <main class="main">
+        <div class="match-status">
+            <i class="fa fa-check-circle" style="color: #28a745; margin-right: 10px;"></i>
+            已匹配到 1 名队友，等待角色分配
+        </div>
+
+        <!-- 角色选择卡片 -->
+        <div class="role-cards">
+            <!-- 急救员A卡片 -->
+            <div class="role-card selected" data-role="A">
+                <div class="role-icon">
+                    <i class="fa fa-hand-paper-o"></i>
+                </div>
+                <div class="role-title">急救员 A - 实施 CPR</div>
+                <div class="role-desc">
+                    负责环境评估、病情判断、CPR 按压与人工呼吸操作；<br/><br/>
+                    需严格按照标准流程（按压深度5-6cm、频率100-120次/分钟）完成操作；<br/><br/>
+                    AED 送达后，负责电极片粘贴与除颤操作。
+                </div>
+            </div>
+
+            <!-- 急救员B卡片 -->
+            <div class="role-card" data-role="B">
+                <div class="role-icon">
+                    <i class="fa fa-phone-square"></i>
+                </div>
+                <div class="role-title">急救员 B - 协同救援</div>
+                <div class="role-desc">
+                    负责拨打 120（准确提供患者位置、症状、已采取措施）；<br/><br/>
+                    快速获取 AED 设备，协助急救员 A 确认电极片粘贴位置；<br/><br/>
+                    记录急救时间，在急救员 A 操作间隙提供必要协助。
+                </div>
+            </div>
+        </div>
+
+        <!-- 确认按钮 -->
+        <button class="confirm-btn" disabled>确认角色，进入场景</button>
+        
+        <!-- 进入场景提示 -->
+        <div class="enter-scene">
+            <i class="fa fa-check-circle"></i> 双方已准备就绪，即将进入场景...
+        </div>
+    </main>
+
+    <!-- 队友信息栏 -->
+    <div class="teammate-info">
+        <div class="teammate-avatar">
+            <i class="fa fa-user"></i>
+        </div>
+        <div>
+            <div>队友：急救小能手</div>
+            <div class="teammate-status">
+                <span class="status-tag waiting"></span>
+                正在选择角色...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const roleCards = document.querySelectorAll('.role-card');
+        const confirmBtn = document.querySelector('.confirm-btn');
+        const teammateStatus = document.querySelector('.teammate-status .status-tag');
+        const teammateText = document.querySelector('.teammate-status');
+        const matchStatus = document.querySelector('.match-status');
+        const enterScene = document.querySelector('.enter-scene');
+        
+        let selectedRole = 'A'; // 默认选择A角色
+        let isConfirmed = false; // 是否已确认角色
+        let teammateConfirmed = false; // 队友是否已确认
+        
+        // 角色卡片点击事件
+        roleCards.forEach(card => {
+            card.addEventListener('click', () => {
+                // 如果已确认角色，则不能再更改
+                if (isConfirmed) return;
+                
+                // 移除所有卡片的选中状态
+                roleCards.forEach(c => c.classList.remove('selected'));
+                // 给当前点击的卡片添加选中状态
+                card.classList.add('selected');
+                // 记录选中的角色
+                selectedRole = card.dataset.role;
+                
+                // 启用确认按钮
+                confirmBtn.disabled = false;
+            });
+        });
+        
+        // 确认按钮点击事件
+        confirmBtn.addEventListener('click', () => {
+            if (isConfirmed) return;
+            
+            isConfirmed = true;
+            confirmBtn.textContent = '已确认角色';
+            confirmBtn.disabled = true;
+            
+            // 更新匹配状态
+            matchStatus.innerHTML = `<i class="fa fa-clock-o" style="color: #ffc107; margin-right: 10px;"></i>
+                                    你已选择 急救员 ${selectedRole}，等待队友确认...`;
+            
+            // 模拟队友选择过程（实际项目中应通过网络同步）
+            simulateTeammateSelection();
+        });
+        
+        // 模拟队友选择过程
+        function simulateTeammateSelection() {
+            // 随机延迟2-5秒，模拟队友选择角色
+            const delay = Math.random() * 3000 + 2000;
+            
+            setTimeout(() => {
+                // 队友选择了另一个角色
+                const teammateRole = selectedRole === 'A' ? 'B' : 'A';
+                teammateConfirmed = true;
+                
+                // 更新队友状态
+                teammateStatus.classList.remove('waiting');
+                teammateStatus.classList.add('ready');
+                teammateText.innerHTML = `<span class="status-tag ready"></span>
+                                        已选择：急救员 ${teammateRole}`;
+                
+                // 更新匹配状态
+                matchStatus.innerHTML = `<i class="fa fa-check-circle" style="color: #28a745; margin-right: 10px;"></i>
+                                        双方已确认角色，准备进入场景`;
+                
+                // 显示进入场景提示
+                enterScene.style.display = 'block';
+                
+                // 实际项目中，这里可以添加进入下一场景的逻辑
+                setTimeout(() => {
+                    // 模拟进入场景跳转
+                    // window.location.href = 'scene.html';
+                }, 3000);
+                
+            }, delay);
+        }
+    </script>
+</body>
+</html>
